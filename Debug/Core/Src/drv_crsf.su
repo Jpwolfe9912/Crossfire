@@ -1,0 +1,11 @@
+core_cm7.h:1884:26:__NVIC_GetPriorityGrouping	4	static
+core_cm7.h:1896:22:__NVIC_EnableIRQ	16	static
+core_cm7.h:2024:22:__NVIC_SetPriority	16	static
+core_cm7.h:2071:26:NVIC_EncodePriority	40	static
+drv_crsf.c:48:6:crsf_init	8	static
+drv_crsf.c:146:6:crsf_process	16	static
+drv_crsf.c:184:6:usart_read	16	static
+drv_crsf.c:232:6:usart_rx_check	16	static
+drv_crsf.c:291:6:usart_process_data	16	static
+drv_crsf.c:302:6:DMA1_Stream1_IRQHandler	8	static
+drv_crsf.c:321:6:USART3_IRQHandler	8	static

@@ -1,0 +1,3 @@
+dwt.c:11:6:DWT_Init	4	static
+dwt.c:19:6:delayMicroseconds	32	static
+dwt.c:45:6:delay	16	static
