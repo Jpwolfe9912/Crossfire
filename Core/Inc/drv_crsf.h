@@ -16,7 +16,7 @@
 #define CRSF_FRAME_SIZE_MAX			64
 
 /* Define the Size Here */
-#define RxBuf_SIZE 64
+#define RXBUF_SIZE 64
 
 #define PAYLOAD_SIZE				22
 

@@ -35,20 +35,19 @@
  *
  */
 
+/*		Static Function Prototypes	*/
 static bool usart_read(uint8_t *pData, uint8_t size);
 
-uint16_t rxSize;
+/*		Global Variables	*/
+uint8_t rxBuf[RXBUF_SIZE];			// dma data
+lwrb_t rxRingBuf;					// ring buffer instance
+uint8_t rxRingBufData[RXBUF_SIZE];	// ring buffer data
 
-uint8_t rxBuf[RxBuf_SIZE];
-lwrb_t rxRingBuf;
-uint8_t rxRingBufData[RxBuf_SIZE];
-
-uint8_t crsfPayload[PAYLOAD_SIZE];
+uint8_t crsfPayload[PAYLOAD_SIZE];	// payload buffer
 
 uint8_t state, cmd, len;
 
 void crsf_init(void){
-//	lwrb_init(&rxRingBuf, rxRingBufData, sizeof(rxRingBufData));
 	/* ---PIN INFO---
 	 * USART3_RX
 	 * 		PD9
@@ -105,13 +104,11 @@ void crsf_init(void){
 						 USART_CR3_RTSE);
 	USART3->CR1		&= ~USART_CR1_OVER8;
 
-//	USART3->CR1		|= USART_CR1_IDLEIE;
-
 	/////////////////DMA INIT///////////////////
 	RCC->AHB1RSTR	|= RCC_AHB1RSTR_DMA1RST;
 	RCC->AHB1RSTR	&= ~RCC_AHB1RSTR_DMA1RST;
 
-	// disable DMA 2 stream 5
+	// disable DMA 1 stream 1
 	DMA1_Stream1->CR 	&= ~DMA_SxCR_EN;
 	while(DMA1_Stream1->CR & DMA_SxCR_EN){}
 	DMA1_Stream1->CR	= 0;
@@ -125,20 +122,20 @@ void crsf_init(void){
 
 	RCC->AHB1ENR		|= RCC_AHB1ENR_DMA1EN;
 
-	// stream 5 ch 4 DMA settings
+	// stream 1 ch 4 DMA settings
 	DMA1_Stream1->CR	|= (0x4 << 25U);			// channel 4
-	DMA1_Stream1->M0AR 	= (uint32_t)rxBuf;		// set mem address
+	DMA1_Stream1->M0AR 	= (uint32_t)rxBuf;			// set mem address
 	DMA1_Stream1->CR 	&= ~DMA_SxCR_DIR;			// per to mem
 	DMA1_Stream1->FCR	&= ~DMA_SxFCR_DMDIS;		// fifo dis
 	DMA1_Stream1->CR 	&= ~DMA_SxCR_MBURST;
 	DMA1_Stream1->CR 	&= ~DMA_SxCR_PBURST;
 	DMA1_Stream1->PAR 	= (uint32_t)(&(USART3->RDR));// set per address
-	DMA1_Stream1->NDTR	= CRSF_FRAME_SIZE_MAX;		// 64 bytes NEEDS TO MATCH HOW MANY ARE COMING!!!!!
+	DMA1_Stream1->NDTR	= CRSF_FRAME_SIZE_MAX;		// 64 bytes
 	DMA1_Stream1->CR 	&= ~DMA_SxCR_PINC;			// don't inc per
 	DMA1_Stream1->CR 	|= DMA_SxCR_MINC;			// increment mem
 	DMA1_Stream1->CR 	&= ~DMA_SxCR_MSIZE;			// 8 bit size
 	DMA1_Stream1->CR 	&= ~DMA_SxCR_PSIZE;			// 8 bit size
-	DMA1_Stream1->CR 	|= DMA_SxCR_CIRC;			// circ mode en ***was changed***
+	DMA1_Stream1->CR 	|= DMA_SxCR_CIRC;			// circ mode en
 	DMA1_Stream1->CR 	&= ~DMA_SxCR_PL_0;			// medium priority
 
 	USART3->CR1			|= USART_CR1_UE;			// enable usart
@@ -148,6 +145,31 @@ void crsf_init(void){
 	usart_read(rxBuf, RxBuf_SIZE);
 
 
+}
+
+static bool usart_read(uint8_t *pData, uint8_t size){
+	if(!(USART3->ISR & USART_ISR_BUSY)){		// wait for UART to be ready
+		DMA1_Stream1->CR	&= ~DMA_SxCR_EN;	// disable DMA
+		while(DMA1_Stream1->CR & DMA_SxCR_EN);
+		DMA1_Stream1->CR	|= (0x4 << 25U);	// set DMA channel
+		DMA1_Stream1->NDTR	= size;				// set transfer size
+		DMA1_Stream1->M0AR	= (uint32_t)pData;	// set memory address
+
+		DMA1->LIFCR			|= (0x3F << 6U);	// clear flags
+
+		DMA1_Stream1->CR 	|= DMA_SxCR_TCIE;	// set transfer complete interrupts
+		DMA1_Stream1->CR	|= DMA_SxCR_HTIE;
+
+		DMA1_Stream1->CR	|= DMA_SxCR_EN;		// enable DMA
+
+		USART3->CR3			|= USART_CR3_DMAR;	// enable DMA for UART
+
+		USART3->ICR			|= USART_ICR_IDLECF;// clear idle interrupt flag
+		USART3->CR1			|= USART_CR1_IDLEIE;// enable idle line interrupts
+
+		return true;
+	}
+	else return false;
 }
 
 void crsf_process(void){
@@ -188,33 +210,6 @@ void crsf_process(void){
 			}
 		}
 	}
-}
-
-
-static bool usart_read(uint8_t *pData, uint8_t size){
-	rxSize = size;
-	if(!(USART3->ISR & USART_ISR_BUSY)){		// wait for UART to be ready
-		DMA1_Stream1->CR	&= ~DMA_SxCR_EN;	// disable DMA
-		while(DMA1_Stream1->CR & DMA_SxCR_EN);
-		DMA1_Stream1->CR	|= (0x4 << 25U);	// set DMA channel
-		DMA1_Stream1->NDTR	= rxSize;				// set transfer size
-		DMA1_Stream1->M0AR	= (uint32_t)pData;	// set memory address
-
-		DMA1->LIFCR			|= (0x3F << 6U);	// clear flags
-
-		DMA1_Stream1->CR 	|= DMA_SxCR_TCIE;	// set transfer complete interrupts
-		DMA1_Stream1->CR	|= DMA_SxCR_HTIE;
-
-		DMA1_Stream1->CR	|= DMA_SxCR_EN;		// enable DMA
-
-		USART3->CR3			|= USART_CR3_DMAR;	// enable DMA for UART
-
-		USART3->ICR			|= USART_ICR_IDLECF;// clear idle interrupt flag
-		USART3->CR1			|= USART_CR1_IDLEIE;// enable idle line interrupts
-
-		return true;
-	}
-	else return false;
 }
 
 
