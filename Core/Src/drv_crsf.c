@@ -35,6 +35,8 @@
  *
  */
 
+static bool usart_read(uint8_t *pData, uint8_t size);
+
 uint16_t rxSize;
 
 uint8_t rxBuf[RxBuf_SIZE];
@@ -141,6 +143,11 @@ void crsf_init(void){
 
 	USART3->CR1			|= USART_CR1_UE;			// enable usart
 
+	lwrb_init(&rxRingBuf, rxRingBufData, sizeof(rxRingBufData));
+
+	usart_read(rxBuf, RxBuf_SIZE);
+
+
 }
 
 void crsf_process(void){
@@ -168,6 +175,7 @@ void crsf_process(void){
 				crsfPayload[lenConst - len] = b;
 				--len;
 				if(len == 0){
+
 					++state;
 				}
 				break;
@@ -183,7 +191,7 @@ void crsf_process(void){
 }
 
 
-bool usart_read(uint8_t *pData, uint8_t size){
+static bool usart_read(uint8_t *pData, uint8_t size){
 	rxSize = size;
 	if(!(USART3->ISR & USART_ISR_BUSY)){		// wait for UART to be ready
 		DMA1_Stream1->CR	&= ~DMA_SxCR_EN;	// disable DMA

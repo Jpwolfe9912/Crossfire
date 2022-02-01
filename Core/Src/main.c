@@ -97,10 +97,6 @@ int main(void)
 	DWT_Init();
 
 	crsf_init();
-	lwrb_init(&rxRingBuf, rxRingBufData, sizeof(rxRingBufData));
-//	Ringbuf_Reset();
-
-	usart_read(rxBuf, RxBuf_SIZE);
 
 	/* USER CODE END 2 */
 
@@ -109,12 +105,6 @@ int main(void)
 	while (1)
 	{
 		crsf_process();
-//		if(getAfter("hello", 10, rxCrsfBuf, 6000)){
-//			delay(1000);
-//		}
-//		memset(rxCrsfBuf, '\0', RxBuf_SIZE);
-//		Ringbuf_Reset();
-//		delay(1000);
 		/* USER CODE BEGIN 3 */
 	}
 	/* USER CODE END 3 */

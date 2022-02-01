@@ -18,12 +18,11 @@
 /* Define the Size Here */
 #define RxBuf_SIZE 64
 
-#define PAYLOAD_SIZE				5
+#define PAYLOAD_SIZE				22
 
 #define ARRAY_LEN(x)            (sizeof(x) / sizeof((x)[0]))
 
 void crsf_init(void);
-bool usart_read(uint8_t *pData, uint8_t size);
 
 void usart_rx_check(void);
 void usart_process_data(const void* data, size_t len);
