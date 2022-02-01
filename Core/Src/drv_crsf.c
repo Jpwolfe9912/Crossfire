@@ -145,6 +145,7 @@ void crsf_init(void){
 
 void crsf_process(void){
 	uint8_t b;
+	static uint8_t lenConst;
 
 	if(lwrb_read(&rxRingBuf, &b, 1)){
 		switch(state){
@@ -156,6 +157,7 @@ void crsf_process(void){
 			}
 			case 1: {				// length byte
 				len = b;
+				lenConst = b;
 				++state;
 				if(len == 0){
 					++state;
@@ -163,7 +165,7 @@ void crsf_process(void){
 				break;
 			}
 			case 2: {				// payload bytes
-				crsfPayload[PAYLOAD_SIZE - len] = b;
+				crsfPayload[lenConst - len] = b;
 				--len;
 				if(len == 0){
 					++state;
